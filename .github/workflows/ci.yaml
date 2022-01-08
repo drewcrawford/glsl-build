@@ -1,0 +1,19 @@
+on: push
+jobs:
+  ci-win:
+    runs-on: windows-latest
+    steps:
+      - name: Install vulkan sdk
+        shell: powershell
+        run: |  
+               Invoke-Webrequest -Uri https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe -OutFile sdk.exe
+               .\sdk.exe install --confirm-command --accept-licenses
+               # although the sdk is documented to prepend the path, it doesn't on github instances.  I don't know why.
+               # Some googling suggests GITHUB_PATH is preferred for some reason.
+               $Env:VULKAN_SDK = "C:\VulkanSDK\" + (Get-ChildItem -Path c:\VulkanSDK |Select-Object -ExpandProperty name -Last 1)
+               echo "$Env:VULKAN_SDK\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: actions/checkout@v2
+      - run: |
+                $ENV:PATH
+                cargo test
+      - run: cargo doc

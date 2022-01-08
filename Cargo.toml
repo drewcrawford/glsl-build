@@ -6,4 +6,4 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-buildkit = {path = "../buildkit"}
+buildkit = {git = "https://github.com/drewcrawford/buildkit"}

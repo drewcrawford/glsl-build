@@ -1,5 +1,22 @@
 /*!
-BuildKit implementation for glslc compiler
+Rust build.rs integration for [glslc](https://github.com/google/shaderc).
+
+Based on [buildkit](https://github.com/drewcrawford/buildkit), the world's tiniest buildsystem,
+this script lets you compile GLSL shaders to SPIR-V with cargo as part of your Rust build process.
+
+This crate might be compared to [shaderc](https://docs.rs/shaderc/0.6.2/shaderc/). Differences include:
+
+1.  No support for compiling shaderc from source; you must have it installed already.  On the plus side, this means
+    it's fast to use.
+2.  Support for [buildkit](https://github.com/drewcrawford/buildkit) features, such as skipping compiles if no files changed.
+3.  Free for noncommercial and "small commercial" use.
+
+This crate provides separate compilers for vertex ([VertexCompiler]) and fragment ([FragmentCompiler]) shaders.  Other options might be investigated in the future.
+
+# Usage
+
+1.  Install glslc to your path
+2.  In `build.rs`, call [build_rs].  This will internally call [CompileSystem::build_rs] on all supported compiler types.
 */
 
 use buildkit::{CompileStep, Configuration, CompileSystem};
@@ -10,8 +27,8 @@ use std::fs::{OpenOptions};
 use std::io::{Read, Write, Seek, SeekFrom};
 
 ///One implementation in many types
-fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path) -> PathBuf {
-    let output_file = buildkit::suggest_intermediate_file(path, intermediate_dir.to_owned(), OsStr::new("spirv"));
+fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path,out_extension: &OsStr) -> PathBuf {
+    let output_file = buildkit::suggest_intermediate_file(path, intermediate_dir.to_owned(), out_extension);
     let mut cmd = Command::new("glslc");
     cmd.arg(path)
         .arg("-MD")
@@ -54,7 +71,7 @@ pub struct VertexCompiler;
 impl CompileStep for VertexCompiler {
     const SOURCE_FILE_EXTENSION: &'static str = "vert";
     fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path) -> PathBuf {
-        compile_one(path,intermediate_dir,configuration,dependency_path)
+        compile_one(path,intermediate_dir,configuration,dependency_path,&OsStr::new("vert.spirv"))
     }
 }
 
@@ -63,11 +80,13 @@ pub struct FragmentCompiler;
 impl CompileStep for FragmentCompiler {
     const SOURCE_FILE_EXTENSION: &'static str = "frag";
     fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path) -> PathBuf {
-        compile_one(path,intermediate_dir,configuration,dependency_path)
+        compile_one(path,intermediate_dir,configuration,dependency_path,&OsStr::new("frag.spirv"))
     }
 }
 
 ///Compiles all shader types
 pub fn build_rs(exe_path: PathBuf) -> Vec<PathBuf> {
-    CompileSystem::<VertexCompiler>::build_rs(exe_path)
+    let mut vertex_paths = CompileSystem::<VertexCompiler>::build_rs(exe_path.clone());
+    vertex_paths.append(&mut CompileSystem::<FragmentCompiler>::build_rs(exe_path));
+    vertex_paths
 }
