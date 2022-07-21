@@ -88,6 +88,9 @@ impl CompileStep for FragmentCompiler {
     }
 }
 
+pub type VertexCompileSystem = CompileSystem<VertexCompiler>;
+pub type FragmentCompileSystem = CompileSystem<FragmentCompiler>;
+
 ///Compiles all shader types
 pub fn build_rs(exe_path: PathBuf) -> Vec<PathBuf> {
     let mut vertex_paths = CompileSystem::<VertexCompiler>::build_rs(exe_path.clone());
