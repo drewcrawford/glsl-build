@@ -27,14 +27,18 @@ use std::fs::{OpenOptions};
 use std::io::{Read, Write, Seek, SeekFrom};
 
 ///One implementation in many types
-fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path,out_extension: &OsStr) -> PathBuf {
+fn compile_one<'a>(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path,out_extension: &OsStr, flags: impl Iterator<Item=&'a str>) -> PathBuf {
     let output_file = buildkit::suggest_intermediate_file(path, intermediate_dir.to_owned(), out_extension);
+    let mut collect_flags = Vec::from_iter(flags);
+    if !collect_flags.iter().any(|e| e.starts_with("--target-env")) {
+        collect_flags.push("--target-env=vulkan1.2");
+    }
     let mut cmd = Command::new("glslc");
     cmd.arg(path)
         .arg("-MD")
         .args(["-MF",dependency_path.to_str().unwrap()])
         .args(["-o",output_file.to_str().unwrap()])
-        .arg("--target-env=vulkan1.2");
+        .args(collect_flags);
 
     match configuration {
         Configuration::Debug => {
@@ -70,8 +74,8 @@ fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configurati
 pub struct VertexCompiler;
 impl CompileStep for VertexCompiler {
     const SOURCE_FILE_EXTENSION: &'static str = "vert";
-    fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path) -> PathBuf {
-        compile_one(path,intermediate_dir,configuration,dependency_path,&OsStr::new("vert.spirv"))
+    fn compile_one<'a>(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path, flags: impl Iterator<Item=&'a str>) -> PathBuf {
+        compile_one(path,intermediate_dir,configuration,dependency_path,&OsStr::new("vert.spirv"), flags)
     }
 }
 
@@ -79,8 +83,8 @@ impl CompileStep for VertexCompiler {
 pub struct FragmentCompiler;
 impl CompileStep for FragmentCompiler {
     const SOURCE_FILE_EXTENSION: &'static str = "frag";
-    fn compile_one(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path) -> PathBuf {
-        compile_one(path,intermediate_dir,configuration,dependency_path,&OsStr::new("frag.spirv"))
+    fn compile_one<'a>(path: &Path, intermediate_dir: &Path, configuration: &Configuration, dependency_path: &Path, flags: impl Iterator<Item=&'a str>) -> PathBuf {
+        compile_one(path,intermediate_dir,configuration,dependency_path,&OsStr::new("frag.spirv"), flags)
     }
 }
 
