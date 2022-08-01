@@ -31,7 +31,7 @@ fn compile_one<'a>(path: &Path, intermediate_dir: &Path, configuration: &Configu
     let output_file = buildkit::suggest_intermediate_file(path, intermediate_dir.to_owned(), out_extension);
     let mut collect_flags = Vec::from_iter(flags);
     if !collect_flags.iter().any(|e| e.starts_with("--target-env")) {
-        collect_flags.push("--target-env=vulkan1.2");
+        collect_flags.push("--target-env=vulkan1.3");
     }
     let mut cmd = Command::new("glslc");
     cmd.arg(path)
