@@ -58,13 +58,10 @@ fn compile_one<'a>(path: &Path, intermediate_dir: &Path, configuration: &Configu
     let err_str = String::from_utf8(output.stderr).unwrap();
     for line in err_str.lines() {
         if line.contains("warning:") {
-            eprintln!("cargo:warning={line}")
+            println!("cargo:warning={line}")
         }
-        else {
-            eprintln!("{line}");
-        }
+        eprintln!("{line}");
     }
-
 
     /*Need to work around https://github.com/google/shaderc/issues/1220
     The assumption we make here is nobody intended to have a file with spaces.
