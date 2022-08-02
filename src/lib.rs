@@ -49,8 +49,22 @@ fn compile_one<'a>(path: &Path, intermediate_dir: &Path, configuration: &Configu
             cmd.arg("-O");
         }
     }
-    let status = cmd
-        .spawn().unwrap().wait().unwrap();
+    let output = cmd
+        .output().unwrap();
+
+    //print stdout and stderr
+    let output_str = String::from_utf8(output.stdout).unwrap();
+    print!("{}",output_str);
+    let err_str = String::from_utf8(output.stderr).unwrap();
+    for line in err_str.lines() {
+        if line.contains("warning:") {
+            eprintln!("cargo:warning={line}")
+        }
+        else {
+            eprintln!("{line}");
+        }
+    }
+
 
     /*Need to work around https://github.com/google/shaderc/issues/1220
     The assumption we make here is nobody intended to have a file with spaces.
@@ -64,7 +78,7 @@ fn compile_one<'a>(path: &Path, intermediate_dir: &Path, configuration: &Configu
     file.seek(SeekFrom::Start(0)).unwrap();
     file.write_fmt(format_args!("{}",contents)).unwrap();
     file.flush().unwrap();
-    if !status.success() {
+    if !output.status.success() {
         panic!("glsl compiler reported an error");
     }
     output_file
